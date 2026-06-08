@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://player_first_person"]
+[gd_scene load_steps=8 format=3 uid="uid://player_first_person"]
 
 [ext_resource type="Script" path="res://scripts/first_person_controller.gd" id="1_controller"]
 
@@ -9,6 +9,21 @@ height = 1.8
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_player"]
 radius = 0.35
 height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fist"]
+albedo_color = Color(0.62, 0.44, 0.33, 1)
+roughness = 0.82
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wrap"]
+albedo_color = Color(0.16, 0.13, 0.11, 1)
+roughness = 0.9
+
+[sub_resource type="SphereMesh" id="SphereMesh_fist"]
+radius = 0.11
+height = 0.22
+
+[sub_resource type="BoxMesh" id="BoxMesh_wrap"]
+size = Vector3(0.18, 0.055, 0.08)
 
 [node name="Player" type="CharacterBody3D"]
 script = ExtResource("1_controller")
@@ -28,3 +43,30 @@ position = Vector3(0, 1.6, 0)
 [node name="Camera3D" type="Camera3D" parent="CameraPivot"]
 current = true
 fov = 75.0
+
+[node name="Fists" type="Node3D" parent="CameraPivot/Camera3D"]
+position = Vector3(0, -0.34, -0.58)
+
+[node name="LeftFist" type="Node3D" parent="CameraPivot/Camera3D/Fists"]
+position = Vector3(-0.23, 0, 0.03)
+
+[node name="Mesh" type="MeshInstance3D" parent="CameraPivot/Camera3D/Fists/LeftFist"]
+mesh = SubResource("SphereMesh_fist")
+surface_material_override/0 = SubResource("StandardMaterial3D_fist")
+
+[node name="Wrap" type="MeshInstance3D" parent="CameraPivot/Camera3D/Fists/LeftFist"]
+position = Vector3(0, -0.01, -0.04)
+mesh = SubResource("BoxMesh_wrap")
+surface_material_override/0 = SubResource("StandardMaterial3D_wrap")
+
+[node name="RightFist" type="Node3D" parent="CameraPivot/Camera3D/Fists"]
+position = Vector3(0.23, 0, 0.03)
+
+[node name="Mesh" type="MeshInstance3D" parent="CameraPivot/Camera3D/Fists/RightFist"]
+mesh = SubResource("SphereMesh_fist")
+surface_material_override/0 = SubResource("StandardMaterial3D_fist")
+
+[node name="Wrap" type="MeshInstance3D" parent="CameraPivot/Camera3D/Fists/RightFist"]
+position = Vector3(0, -0.01, -0.04)
+mesh = SubResource("BoxMesh_wrap")
+surface_material_override/0 = SubResource("StandardMaterial3D_wrap")
