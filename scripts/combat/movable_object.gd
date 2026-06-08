@@ -25,9 +25,15 @@ var _trajectory_root: Node3D
 var _trajectory_material: StandardMaterial3D = StandardMaterial3D.new()
 var _trajectory_markers: Array[MeshInstance3D] = []
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity") as float
+var _slow_feedback_material: StandardMaterial3D = StandardMaterial3D.new()
+var _slow_feedback_mesh: SphereMesh = SphereMesh.new()
+var _slow_feedback: MeshInstance3D
+var _slow_feedback_time := 0.0
+var _slow_feedback_duration := 0.32
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("gravity_movable")
 	contact_monitor = true
 	max_contacts_reported = 4
@@ -103,6 +109,37 @@ func _ready() -> void:
 		_trajectory_root.add_child(marker)
 		_trajectory_markers.append(marker)
 
+	_slow_feedback_material.albedo_color = Color(0.26, 0.95, 1.0, 0.55)
+	_slow_feedback_material.emission_enabled = true
+	_slow_feedback_material.emission = Color(0.26, 0.95, 1.0, 1.0)
+	_slow_feedback_material.emission_energy_multiplier = 1.8
+	_slow_feedback_material.no_depth_test = true
+	_slow_feedback_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_slow_feedback_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+
+	_slow_feedback_mesh.radius = 0.8
+	_slow_feedback_mesh.height = 1.6
+
+	_slow_feedback = MeshInstance3D.new()
+	_slow_feedback.name = "MomentumSlowFeedback"
+	_slow_feedback.mesh = _slow_feedback_mesh
+	_slow_feedback.material_override = _slow_feedback_material
+	_slow_feedback.visible = false
+	add_child(_slow_feedback)
+
+
+func _process(delta: float) -> void:
+	if _slow_feedback_time <= 0.0:
+		return
+
+	_slow_feedback_time = maxf(_slow_feedback_time - delta, 0.0)
+	var progress := 1.0 - _slow_feedback_time / _slow_feedback_duration
+	_slow_feedback.scale = Vector3.ONE * lerpf(0.75, 1.55, progress)
+	_set_slow_feedback_alpha(lerpf(0.55, 0.0, progress))
+
+	if _slow_feedback_time <= 0.0:
+		_slow_feedback.visible = false
+
 
 func set_tactical_highlight(enabled: bool, selected: bool = false) -> void:
 	if selected:
@@ -136,6 +173,13 @@ func has_planned_impulse() -> bool:
 	return _pending_impulse != Vector3.ZERO
 
 
+func get_mental_fatigue_cost(item_cost: float, impulse_cost: float) -> float:
+	if _pending_impulse == Vector3.ZERO:
+		return 0.0
+
+	return item_cost + _pending_impulse.length() * impulse_cost
+
+
 func apply_planned_impulse() -> void:
 	if _pending_impulse == Vector3.ZERO:
 		return
@@ -148,6 +192,25 @@ func apply_planned_impulse() -> void:
 	_hide_trajectory_visual()
 
 
+func reduce_linear_momentum(amount: float) -> void:
+	var speed := linear_velocity.length()
+	if speed <= 0.0 or amount <= 0.0:
+		return
+
+	var current_momentum := speed * mass
+	var new_momentum := maxf(current_momentum - amount, 0.0)
+	if new_momentum <= 0.0:
+		linear_velocity = Vector3.ZERO
+		angular_velocity = Vector3.ZERO
+	else:
+		var momentum_ratio := new_momentum / current_momentum
+		linear_velocity *= momentum_ratio
+		angular_velocity *= momentum_ratio
+
+	sleeping = false
+	_show_slow_feedback()
+
+
 func clear_plan() -> void:
 	_pending_impulse = Vector3.ZERO
 	_set_overlay(null)
@@ -155,9 +218,22 @@ func clear_plan() -> void:
 	_hide_trajectory_visual()
 
 
+func _show_slow_feedback() -> void:
+	_slow_feedback_time = _slow_feedback_duration
+	_slow_feedback.scale = Vector3.ONE * 0.75
+	_set_slow_feedback_alpha(0.55)
+	_slow_feedback.visible = true
+
+
+func _set_slow_feedback_alpha(alpha: float) -> void:
+	var color := _slow_feedback_material.albedo_color
+	color.a = alpha
+	_slow_feedback_material.albedo_color = color
+
+
 func _set_overlay(material: Material) -> void:
 	for child in get_children():
-		if child is MeshInstance3D and not child.name.begins_with("PlannedVector"):
+		if child is MeshInstance3D and not child.name.begins_with("PlannedVector") and child.name != "MomentumSlowFeedback":
 			child.material_overlay = material
 
 

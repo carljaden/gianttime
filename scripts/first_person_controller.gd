@@ -2,6 +2,8 @@ extends CharacterBody3D
 
 signal health_changed(current_health: int, maximum_health: int)
 signal gold_changed(gold: int)
+signal mental_fatigue_changed(current_fatigue: float, maximum_fatigue: float)
+signal time_stop_changed(remaining_time: float, maximum_time: float, status: String)
 
 @export_group("Vitals")
 @export var maximum_health := 100
@@ -28,6 +30,15 @@ signal gold_changed(gold: int)
 @export var planning_ray_length := 80.0
 @export var auto_target_impulse := 34.0
 @export var pull_to_head_impulse := 30.0
+@export var area_gravity_radius := 7.5
+@export var area_gravity_impulse := 26.0
+@export var momentum_reduction_step := 12.0
+@export var time_stop_duration := 6.0
+@export var time_stop_cooldown := 4.0
+@export var maximum_mental_fatigue := 100.0
+@export var fatigue_per_powered_item := 8.0
+@export var fatigue_per_impulse := 1.0
+@export var mental_fatigue_recovery_rate := 12.0
 
 @export_group("Melee")
 @export var punch_damage := 8
@@ -50,15 +61,40 @@ var _planned_direction := Vector3.ZERO
 var _planned_magnitude := 0.0
 var _can_punch := true
 var _right_fist_start_position := Vector3.ZERO
+var _mental_fatigue := 0.0
+var _mental_fatigue_planning_baseline := 0.0
+var _time_stop_remaining := 0.0
+var _time_stop_cooldown_remaining := 0.0
+
+const DEFAULT_ACTION_EVENTS := {
+	"move_forward": [KEY_W],
+	"move_back": [KEY_S],
+	"move_left": [KEY_A],
+	"move_right": [KEY_D],
+	"jump": [KEY_SPACE],
+	"sprint": [KEY_SHIFT],
+	"gravity_plan": [MOUSE_BUTTON_RIGHT],
+	"gravity_select": [MOUSE_BUTTON_LEFT],
+	"gravity_pull_to_head": [MOUSE_BUTTON_MIDDLE],
+	"gravity_plan_up": [KEY_E],
+	"gravity_plan_down": [KEY_Q],
+	"gravity_area_push": [KEY_SHIFT],
+	"gravity_area_pull": [KEY_CTRL],
+	"gravity_reduce_momentum": [KEY_F],
+	"punch": [MOUSE_BUTTON_LEFT],
+}
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_ensure_default_input_actions()
 	add_to_group("player")
 	_right_fist_start_position = right_fist.position
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	health_changed.emit(current_health, maximum_health)
 	gold_changed.emit(gold)
+	_emit_mental_fatigue_changed()
+	_emit_time_stop_changed()
 
 
 func _input(event: InputEvent) -> void:
@@ -77,15 +113,25 @@ func _input(event: InputEvent) -> void:
 		rotation.y = _look_rotation.y
 		camera_pivot.rotation.x = _look_rotation.x
 
+	if _is_tactical_planning and _is_action_pressed_by_event(event, "gravity_area_push"):
+		_apply_area_gravity_impulse(false)
+		return
+	elif _is_tactical_planning and _is_action_pressed_by_event(event, "gravity_area_pull"):
+		_apply_area_gravity_impulse(true)
+		return
+	elif _is_tactical_planning and _is_action_pressed_by_event(event, "gravity_reduce_momentum"):
+		_reduce_selected_momentum()
+		return
+
 	if (
 		event is InputEventMouseButton
 		and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	):
-		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+		if _is_action_pressed_by_event(event, "gravity_plan"):
 			_toggle_tactical_planning()
 		elif _is_tactical_planning:
 			_handle_planning_mouse_button(event)
-		elif event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		elif _is_action_pressed_by_event(event, "punch"):
 			_punch()
 
 	if event.is_action_pressed("ui_cancel"):
@@ -105,8 +151,19 @@ func _process(_delta: float) -> void:
 		return
 
 	if _is_tactical_planning:
+		_time_stop_remaining -= _delta
+		_emit_time_stop_changed()
+		if _time_stop_remaining <= 0.0:
+			_set_tactical_planning(false)
+			return
+
 		_update_hovered_nodes()
 		_update_selected_impulse_from_keys()
+	else:
+		if _time_stop_cooldown_remaining > 0.0:
+			_time_stop_cooldown_remaining = maxf(_time_stop_cooldown_remaining - _delta, 0.0)
+			_emit_time_stop_changed()
+		_recover_mental_fatigue(_delta)
 
 
 func _physics_process(delta: float) -> void:
@@ -146,31 +203,54 @@ func add_gold(amount: int) -> void:
 	gold_changed.emit(gold)
 
 
+func refresh_mental_fatigue() -> void:
+	if _is_tactical_planning:
+		_update_mental_fatigue()
+	else:
+		_mental_fatigue = clampf(_mental_fatigue, 0.0, maximum_mental_fatigue)
+		_emit_mental_fatigue_changed()
+	_emit_time_stop_changed()
+
+
 func _toggle_tactical_planning() -> void:
+	if not _is_tactical_planning and _time_stop_cooldown_remaining > 0.0:
+		return
+
 	_set_tactical_planning(not _is_tactical_planning)
 
 
 func _set_tactical_planning(enabled: bool) -> void:
+	if enabled == _is_tactical_planning:
+		return
+
+	var was_planning := _is_tactical_planning
 	_is_tactical_planning = enabled
 	get_tree().paused = enabled
 
 	if enabled:
 		velocity = Vector3.ZERO
+		_mental_fatigue_planning_baseline = _mental_fatigue
+		_time_stop_remaining = time_stop_duration
+		_emit_time_stop_changed()
 		_highlight_all_tactical_nodes(true)
 		_update_hovered_nodes()
 	else:
 		_selected_movable = null
 		_hovered_movable = null
 		_hovered_target = null
+		_update_mental_fatigue()
 		_apply_all_planned_impulses()
 		_highlight_all_tactical_nodes(false)
+		_emit_time_stop_changed()
+		if was_planning:
+			_time_stop_cooldown_remaining = time_stop_cooldown
+			_emit_time_stop_changed()
 
 
 func _handle_planning_mouse_button(event: InputEventMouseButton) -> void:
-	if event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			_handle_planning_left_click()
-	elif event.button_index == MOUSE_BUTTON_MIDDLE and event.pressed and _selected_movable != null:
+	if _is_action_pressed_by_event(event, "gravity_select"):
+		_handle_planning_left_click()
+	elif _is_action_pressed_by_event(event, "gravity_pull_to_head") and _selected_movable != null:
 		_pull_selected_toward_head()
 	elif event.pressed and _selected_movable != null:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
@@ -210,6 +290,7 @@ func _target_selected_movable(target: Node3D) -> void:
 
 	_planned_direction = direction.normalized()
 	_planned_magnitude = auto_target_impulse
+	_constrain_planned_magnitude_for_fatigue()
 	_update_planned_impulse()
 	_queue_selected_impulse()
 
@@ -221,6 +302,7 @@ func _pull_selected_toward_head() -> void:
 
 	_planned_direction = direction.normalized()
 	_planned_magnitude = pull_to_head_impulse
+	_constrain_planned_magnitude_for_fatigue()
 	_update_planned_impulse()
 	_queue_selected_impulse()
 
@@ -244,9 +326,9 @@ func _update_selected_impulse_from_keys() -> void:
 	impulse_delta += horizontal_right * input_direction.x
 	impulse_delta += horizontal_forward * -input_direction.y
 
-	if Input.is_key_pressed(KEY_E):
+	if Input.is_action_pressed("gravity_plan_up"):
 		impulse_delta += Vector3.UP
-	if Input.is_key_pressed(KEY_Q):
+	if Input.is_action_pressed("gravity_plan_down"):
 		impulse_delta += Vector3.DOWN
 
 	if impulse_delta == Vector3.ZERO:
@@ -261,6 +343,7 @@ func _update_selected_impulse_from_keys() -> void:
 
 	if _planned_magnitude <= 0.0:
 		_planned_magnitude = planning_default_magnitude
+	_constrain_planned_magnitude_for_fatigue()
 	_update_planned_impulse()
 	_queue_selected_impulse()
 
@@ -274,6 +357,7 @@ func _adjust_planned_impulse_from_scroll(direction: float) -> void:
 		0.0,
 		maximum_planned_impulse
 	)
+	_constrain_planned_magnitude_for_fatigue()
 	_update_planned_impulse()
 	_queue_selected_impulse()
 
@@ -346,9 +430,44 @@ func _apply_all_planned_impulses() -> void:
 			node.call("apply_planned_impulse")
 
 
+func _apply_area_gravity_impulse(pull: bool) -> void:
+	if _is_game_menu_open() or not _is_tactical_planning:
+		return
+
+	_set_tactical_planning(false)
+
+	for node in get_tree().get_nodes_in_group("gravity_movable"):
+		if not (node is RigidBody3D):
+			continue
+
+		var body := node as RigidBody3D
+		var offset := body.global_position - global_position
+		var distance := offset.length()
+		if distance < 0.05 or distance > area_gravity_radius:
+			continue
+
+		var direction := -offset.normalized() if pull else offset.normalized()
+		var distance_falloff := 1.0 - distance / area_gravity_radius
+		var impulse := direction * area_gravity_impulse * lerpf(0.35, 1.0, distance_falloff)
+		var fatigue_cost := _get_fatigue_cost_for_impulse(impulse)
+		if not _try_add_mental_fatigue(fatigue_cost):
+			continue
+
+		body.sleeping = false
+		body.apply_central_impulse(impulse)
+
+
+func _reduce_selected_momentum() -> void:
+	if _selected_movable == null or not _selected_movable.has_method("reduce_linear_momentum"):
+		return
+
+	_selected_movable.call("reduce_linear_momentum", momentum_reduction_step)
+
+
 func _queue_selected_impulse() -> void:
 	if _selected_movable != null and _selected_movable.has_method("queue_gravity_impulse"):
 		_selected_movable.call("queue_gravity_impulse", _planned_impulse)
+	_update_mental_fatigue()
 
 
 func _update_planned_impulse() -> void:
@@ -356,6 +475,78 @@ func _update_planned_impulse() -> void:
 		_planned_impulse = Vector3.ZERO
 	else:
 		_planned_impulse = _planned_direction.normalized() * _planned_magnitude
+
+
+func _constrain_planned_magnitude_for_fatigue() -> void:
+	if _selected_movable == null:
+		return
+
+	var other_fatigue := _get_planned_fatigue(_selected_movable)
+	var available_fatigue := maximum_mental_fatigue - _mental_fatigue_planning_baseline - other_fatigue
+	if available_fatigue < fatigue_per_powered_item:
+		_planned_magnitude = 0.0
+		return
+	if fatigue_per_impulse <= 0.0:
+		return
+
+	var maximum_allowed_magnitude := (available_fatigue - fatigue_per_powered_item) / fatigue_per_impulse
+	_planned_magnitude = clampf(_planned_magnitude, 0.0, maximum_allowed_magnitude)
+
+
+func _update_mental_fatigue() -> void:
+	var planned_fatigue := _get_planned_fatigue()
+	_mental_fatigue = clampf(_mental_fatigue_planning_baseline + planned_fatigue, 0.0, maximum_mental_fatigue)
+	_emit_mental_fatigue_changed()
+
+
+func _get_planned_fatigue(excluded_node: Node = null) -> float:
+	var fatigue := 0.0
+	for node in get_tree().get_nodes_in_group("gravity_movable"):
+		if node == excluded_node:
+			continue
+		if node.has_method("get_mental_fatigue_cost"):
+			fatigue += float(node.call("get_mental_fatigue_cost", fatigue_per_powered_item, fatigue_per_impulse))
+	return fatigue
+
+
+func _get_fatigue_cost_for_impulse(impulse: Vector3) -> float:
+	if impulse == Vector3.ZERO:
+		return 0.0
+
+	return fatigue_per_powered_item + impulse.length() * fatigue_per_impulse
+
+
+func _try_add_mental_fatigue(amount: float) -> bool:
+	if amount <= 0.0:
+		return true
+	if _mental_fatigue + amount > maximum_mental_fatigue:
+		return false
+
+	_mental_fatigue = clampf(_mental_fatigue + amount, 0.0, maximum_mental_fatigue)
+	_mental_fatigue_planning_baseline = _mental_fatigue
+	_emit_mental_fatigue_changed()
+	return true
+
+
+func _recover_mental_fatigue(delta: float) -> void:
+	if _mental_fatigue <= 0.0 or mental_fatigue_recovery_rate <= 0.0:
+		return
+
+	_mental_fatigue = maxf(_mental_fatigue - mental_fatigue_recovery_rate * delta, 0.0)
+	_emit_mental_fatigue_changed()
+
+
+func _emit_mental_fatigue_changed() -> void:
+	mental_fatigue_changed.emit(_mental_fatigue, maximum_mental_fatigue)
+
+
+func _emit_time_stop_changed() -> void:
+	if _is_tactical_planning:
+		time_stop_changed.emit(maxf(_time_stop_remaining, 0.0), time_stop_duration, "active")
+	elif _time_stop_cooldown_remaining > 0.0:
+		time_stop_changed.emit(_time_stop_cooldown_remaining, time_stop_cooldown, "cooldown")
+	else:
+		time_stop_changed.emit(0.0, time_stop_duration, "ready")
 
 
 func _punch() -> void:
@@ -415,3 +606,30 @@ func _is_game_menu_open() -> bool:
 		return false
 
 	return bool(menu.call("is_open"))
+
+
+func _is_action_pressed_by_event(event: InputEvent, action: StringName) -> bool:
+	return event.is_action_pressed(action)
+
+
+func _ensure_default_input_actions() -> void:
+	for action_name in DEFAULT_ACTION_EVENTS.keys():
+		if not InputMap.has_action(action_name):
+			InputMap.add_action(action_name)
+
+		if not InputMap.action_get_events(action_name).is_empty():
+			continue
+
+		for event_code in DEFAULT_ACTION_EVENTS[action_name]:
+			InputMap.action_add_event(action_name, _create_input_event(event_code))
+
+
+func _create_input_event(event_code: int) -> InputEvent:
+	if event_code >= MOUSE_BUTTON_LEFT and event_code <= MOUSE_BUTTON_XBUTTON2:
+		var mouse_event := InputEventMouseButton.new()
+		mouse_event.button_index = event_code
+		return mouse_event
+
+	var key_event := InputEventKey.new()
+	key_event.keycode = event_code
+	return key_event

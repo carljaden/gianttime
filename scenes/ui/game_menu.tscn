@@ -124,9 +124,15 @@ layout_mode = 2
 text = "Settings"
 label_settings = SubResource("LabelSettings_header")
 
-[node name="SettingsList" type="VBoxContainer" parent="Root/SettingsPanel/SettingsMargin/SettingsStack"]
+[node name="SettingsScroll" type="ScrollContainer" parent="Root/SettingsPanel/SettingsMargin/SettingsStack"]
+custom_minimum_size = Vector2(0, 440)
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="SettingsList" type="VBoxContainer" parent="Root/SettingsPanel/SettingsMargin/SettingsStack/SettingsScroll"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
 [connection signal="pressed" from="Root/MenuPanel/MenuMargin/MenuStack/ResumeButton" to="." method="_on_resume_pressed"]

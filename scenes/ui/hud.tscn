@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://hud_player_status"]
+[gd_scene load_steps=14 format=3 uid="uid://hud_player_status"]
 
 [ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
 
@@ -27,6 +27,34 @@ corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health_fill"]
 bg_color = Color(0.78, 0.13, 0.12, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fatigue_background"]
+bg_color = Color(0.055, 0.075, 0.09, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fatigue_fill"]
+bg_color = Color(0.22, 0.74, 0.95, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_time_background"]
+bg_color = Color(0.075, 0.06, 0.09, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_time_fill"]
+bg_color = Color(0.78, 0.52, 1, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -92,7 +120,7 @@ anchors_preset = 0
 offset_left = 24.0
 offset_top = 22.0
 offset_right = 282.0
-offset_bottom = 82.0
+offset_bottom = 158.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
@@ -134,6 +162,64 @@ value = 100.0
 show_percentage = false
 theme_override_styles/background = SubResource("StyleBoxFlat_health_background")
 theme_override_styles/fill = SubResource("StyleBoxFlat_health_fill")
+
+[node name="FatigueHeader" type="HBoxContainer" parent="Root/VitalsPanel/VitalsMargin/VitalsStack"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="FatigueLabel" type="Label" parent="Root/VitalsPanel/VitalsMargin/VitalsStack/FatigueHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+text = "Focus"
+label_settings = SubResource("LabelSettings_small")
+
+[node name="FatigueText" type="Label" parent="Root/VitalsPanel/VitalsMargin/VitalsStack/FatigueHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = "0 / 100"
+label_settings = SubResource("LabelSettings_small")
+horizontal_alignment = 2
+
+[node name="FatigueBar" type="ProgressBar" parent="Root/VitalsPanel/VitalsMargin/VitalsStack"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 14)
+layout_mode = 2
+mouse_filter = 2
+max_value = 100.0
+show_percentage = false
+theme_override_styles/background = SubResource("StyleBoxFlat_fatigue_background")
+theme_override_styles/fill = SubResource("StyleBoxFlat_fatigue_fill")
+
+[node name="TimeStopHeader" type="HBoxContainer" parent="Root/VitalsPanel/VitalsMargin/VitalsStack"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="TimeStopLabel" type="Label" parent="Root/VitalsPanel/VitalsMargin/VitalsStack/TimeStopHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+text = "Time"
+label_settings = SubResource("LabelSettings_small")
+
+[node name="TimeStopText" type="Label" parent="Root/VitalsPanel/VitalsMargin/VitalsStack/TimeStopHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = "0.0s"
+label_settings = SubResource("LabelSettings_small")
+horizontal_alignment = 2
+
+[node name="TimeStopBar" type="ProgressBar" parent="Root/VitalsPanel/VitalsMargin/VitalsStack"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 14)
+layout_mode = 2
+mouse_filter = 2
+max_value = 6.0
+show_percentage = false
+theme_override_styles/background = SubResource("StyleBoxFlat_time_background")
+theme_override_styles/fill = SubResource("StyleBoxFlat_time_fill")
 
 [node name="GoldPanel" type="PanelContainer" parent="Root"]
 layout_mode = 1
