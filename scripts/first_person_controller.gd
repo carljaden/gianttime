@@ -20,25 +20,26 @@ signal gold_changed(gold: int)
 @export var minimum_look_angle := -85.0
 @export var maximum_look_angle := 85.0
 
-@export_group("Spells")
-@export var fling_rock_scene: PackedScene = preload("res://scenes/spells/fling_rock_projectile.tscn")
-@export var fling_rock_spawn_distance := 1.4
-@export var fling_rock_cooldown := 0.35
-@export var fling_rock_min_speed := 7.0
-@export var fling_rock_max_speed := 34.0
-@export var fling_rock_full_charge_time := 1.4
+@export_group("Tactical Gravity")
+@export var planning_drag_strength := 0.08
+@export var planning_scroll_strength := 2.0
+@export var maximum_planned_impulse := 38.0
+@export var planning_ray_length := 80.0
 
 @onready var camera_pivot: Node3D = $CameraPivot
 @onready var camera: Camera3D = $CameraPivot/Camera3D
 
 var _gravity := ProjectSettings.get_setting("physics/3d/default_gravity") as float
 var _look_rotation := Vector2.ZERO
-var _can_cast_fling_rock := true
-var _is_charging_fling_rock := false
-var _fling_rock_charge_started_at := 0.0
+var _is_tactical_planning := false
+var _is_dragging_vector := false
+var _selected_movable: Node3D
+var _hovered_movable: Node3D
+var _planned_impulse := Vector3.ZERO
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("player")
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	health_changed.emit(current_health, maximum_health)
@@ -46,7 +47,11 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+	if (
+		event is InputEventMouseMotion
+		and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+		and not (_is_tactical_planning and _is_dragging_vector)
+	):
 		_look_rotation.x -= event.relative.y * mouse_sensitivity
 		_look_rotation.y -= event.relative.x * mouse_sensitivity
 		_look_rotation.x = clamp(
@@ -60,22 +65,34 @@ func _input(event: InputEvent) -> void:
 
 	if (
 		event is InputEventMouseButton
-		and event.button_index == MOUSE_BUTTON_LEFT
 		and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	):
-		if event.pressed:
-			_begin_charging_fling_rock()
-		else:
-			_release_fling_rock()
+		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			_toggle_tactical_planning()
+		elif _is_tactical_planning:
+			_handle_planning_mouse_button(event)
+
+	if event is InputEventMouseMotion and _is_tactical_planning and _is_dragging_vector:
+		_adjust_planned_impulse_from_drag(event.relative)
 
 	if event.is_action_pressed("ui_cancel"):
-		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		if _is_tactical_planning:
+			_set_tactical_planning(false)
+		elif Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		else:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
+func _process(_delta: float) -> void:
+	if _is_tactical_planning and not _is_dragging_vector:
+		_update_hovered_movable()
+
+
 func _physics_process(delta: float) -> void:
+	if _is_tactical_planning:
+		return
+
 	if not is_on_floor():
 		velocity.y -= _gravity * delta
 
@@ -105,47 +122,117 @@ func heal(amount: int) -> void:
 
 
 func add_gold(amount: int) -> void:
-	gold = max(gold + amount, 0)
+	gold = maxi(gold + amount, 0)
 	gold_changed.emit(gold)
 
 
-func _begin_charging_fling_rock() -> void:
-	if not _can_cast_fling_rock or fling_rock_scene == null:
-		return
-
-	_is_charging_fling_rock = true
-	_fling_rock_charge_started_at = Time.get_ticks_msec() / 1000.0
+func _toggle_tactical_planning() -> void:
+	_set_tactical_planning(not _is_tactical_planning)
 
 
-func _release_fling_rock() -> void:
-	if not _is_charging_fling_rock:
-		return
+func _set_tactical_planning(enabled: bool) -> void:
+	_is_tactical_planning = enabled
+	get_tree().paused = enabled
 
-	var charge_time := (Time.get_ticks_msec() / 1000.0) - _fling_rock_charge_started_at
-	var charge_percent := clampf(charge_time / fling_rock_full_charge_time, 0.0, 1.0)
-	var launch_speed := lerpf(fling_rock_min_speed, fling_rock_max_speed, charge_percent)
-	_is_charging_fling_rock = false
-	_cast_fling_rock(launch_speed)
+	if enabled:
+		velocity = Vector3.ZERO
+		_highlight_all_movable(true)
+		_update_hovered_movable()
+	else:
+		if (
+			_is_dragging_vector
+			and _selected_movable != null
+			and _selected_movable.has_method("queue_gravity_impulse")
+		):
+			_selected_movable.call("queue_gravity_impulse", _planned_impulse)
+
+		_is_dragging_vector = false
+		_selected_movable = null
+		_hovered_movable = null
+		_apply_all_planned_impulses()
+		_highlight_all_movable(false)
 
 
-func _cast_fling_rock(launch_speed: float) -> void:
-	if not _can_cast_fling_rock or fling_rock_scene == null:
-		return
+func _handle_planning_mouse_button(event: InputEventMouseButton) -> void:
+	if event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_selected_movable = _find_movable_under_crosshair()
+			_planned_impulse = Vector3.ZERO
+			_is_dragging_vector = _selected_movable != null
+			if _selected_movable != null and _selected_movable.has_method("preview_gravity_impulse"):
+				_selected_movable.call("preview_gravity_impulse", _planned_impulse)
+			_refresh_movable_highlights()
+		else:
+			if _selected_movable != null and _selected_movable.has_method("queue_gravity_impulse"):
+				_selected_movable.call("queue_gravity_impulse", _planned_impulse)
+			_is_dragging_vector = false
+			_selected_movable = null
+			_update_hovered_movable()
+	elif event.pressed and _selected_movable != null:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_adjust_planned_impulse_from_scroll(1.0)
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_adjust_planned_impulse_from_scroll(-1.0)
 
-	_can_cast_fling_rock = false
 
-	var direction := -camera.global_basis.z.normalized()
-	var projectile := fling_rock_scene.instantiate() as Node3D
-	get_tree().current_scene.add_child(projectile)
-	projectile.global_position = camera.global_position + direction * fling_rock_spawn_distance
+func _adjust_planned_impulse_from_drag(relative_mouse_motion: Vector2) -> void:
+	var right := camera.global_basis.x.normalized()
+	var up := camera.global_basis.y.normalized()
+	_planned_impulse += right * relative_mouse_motion.x * planning_drag_strength
+	_planned_impulse += up * -relative_mouse_motion.y * planning_drag_strength
+	_planned_impulse = _planned_impulse.limit_length(maximum_planned_impulse)
+	_preview_selected_impulse()
 
-	if projectile is PhysicsBody3D:
-		(projectile as PhysicsBody3D).add_collision_exception_with(self)
 
-	if projectile.has_method("launch"):
-		projectile.call("launch", direction, launch_speed, velocity)
+func _adjust_planned_impulse_from_scroll(direction: float) -> void:
+	var forward := -camera.global_basis.z.normalized()
+	_planned_impulse += forward * direction * planning_scroll_strength
+	_planned_impulse = _planned_impulse.limit_length(maximum_planned_impulse)
+	_preview_selected_impulse()
 
-	get_tree().create_timer(fling_rock_cooldown).timeout.connect(
-		func() -> void:
-			_can_cast_fling_rock = true
-	)
+
+func _update_hovered_movable() -> void:
+	_hovered_movable = _find_movable_under_crosshair()
+	_refresh_movable_highlights()
+
+
+func _find_movable_under_crosshair() -> Node3D:
+	var space_state := get_world_3d().direct_space_state
+	var origin := camera.global_position
+	var end := origin + -camera.global_basis.z.normalized() * planning_ray_length
+	var query := PhysicsRayQueryParameters3D.create(origin, end)
+	query.exclude = [self]
+
+	var result: Dictionary = space_state.intersect_ray(query)
+	if result.is_empty():
+		return null
+
+	var collider: Node = result.get("collider") as Node
+	if collider != null and collider.is_in_group("gravity_movable"):
+		return collider as Node3D
+
+	return null
+
+
+func _highlight_all_movable(enabled: bool) -> void:
+	for node in get_tree().get_nodes_in_group("gravity_movable"):
+		if node.has_method("set_tactical_highlight"):
+			node.call("set_tactical_highlight", enabled, false)
+
+
+func _refresh_movable_highlights() -> void:
+	for node in get_tree().get_nodes_in_group("gravity_movable"):
+		var is_selected := node == _selected_movable or node == _hovered_movable
+		if node.has_method("set_tactical_highlight"):
+			node.call("set_tactical_highlight", _is_tactical_planning, is_selected)
+
+
+func _apply_all_planned_impulses() -> void:
+	for node in get_tree().get_nodes_in_group("gravity_movable"):
+		if node.has_method("apply_planned_impulse"):
+			node.call("apply_planned_impulse")
+
+
+func _preview_selected_impulse() -> void:
+	if _selected_movable != null and _selected_movable.has_method("preview_gravity_impulse"):
+		_selected_movable.call("preview_gravity_impulse", _planned_impulse)

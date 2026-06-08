@@ -1,8 +1,9 @@
-[gd_scene load_steps=53 format=3 uid="uid://tmc42etns2k4"]
+[gd_scene load_steps=59 format=3 uid="uid://tmc42etns2k4"]
 
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="2_hud"]
 [ext_resource type="Script" uid="uid://cdcqsyw4jmb7f" path="res://scripts/combat/target_dummy.gd" id="3_target_dummy"]
+[ext_resource type="Script" path="res://scripts/combat/movable_object.gd" id="4_movable_object"]
 
 [sub_resource type="BoxMesh" id="mesh_spawn_ground"]
 size = Vector3(28, 0.25, 18)
@@ -167,6 +168,26 @@ sky_material = SubResource("ProceduralSkyMaterial_sugp2")
 [sub_resource type="Environment" id="Environment_tbgi4"]
 background_mode = 2
 sky = SubResource("Sky_jyhfs")
+
+[sub_resource type="SphereMesh" id="mesh_movable_rock"]
+radius = 0.42
+height = 0.84
+
+[sub_resource type="SphereShape3D" id="shape_movable_rock"]
+radius = 0.42
+
+[sub_resource type="StandardMaterial3D" id="mat_log"]
+albedo_color = Color(0.29, 0.18, 0.11, 1)
+roughness = 0.95
+
+[sub_resource type="CylinderMesh" id="mesh_movable_log"]
+top_radius = 0.28
+bottom_radius = 0.28
+height = 1.9
+
+[sub_resource type="CylinderShape3D" id="shape_movable_log"]
+radius = 0.28
+height = 1.9
 
 [node name="Main" type="Node3D"]
 
@@ -388,6 +409,77 @@ surface_material_override/0 = SubResource("mat_health_background")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.01)
 mesh = SubResource("mesh_health_bar_fill")
 surface_material_override/0 = SubResource("mat_health_fill")
+
+[node name="MovableObjects" type="Node3D" parent="CaveRoom"]
+
+[node name="LooseRockA" type="RigidBody3D" parent="CaveRoom/MovableObjects"]
+mass = 2.0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9, 0.45, -10.7)
+continuous_cd = true
+script = ExtResource("4_movable_object")
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveRoom/MovableObjects/LooseRockA"]
+mesh = SubResource("mesh_movable_rock")
+surface_material_override/0 = SubResource("mat_rock")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveRoom/MovableObjects/LooseRockA"]
+shape = SubResource("shape_movable_rock")
+
+[node name="LooseRockB" type="RigidBody3D" parent="CaveRoom/MovableObjects"]
+mass = 2.4
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.2, 0.45, -13.1)
+continuous_cd = true
+script = ExtResource("4_movable_object")
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveRoom/MovableObjects/LooseRockB"]
+mesh = SubResource("mesh_movable_rock")
+surface_material_override/0 = SubResource("mat_rock")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveRoom/MovableObjects/LooseRockB"]
+shape = SubResource("shape_movable_rock")
+
+[node name="LooseRockC" type="RigidBody3D" parent="CaveRoom/MovableObjects"]
+mass = 1.6
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.0, 0.45, -19.0)
+continuous_cd = true
+script = ExtResource("4_movable_object")
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveRoom/MovableObjects/LooseRockC"]
+mesh = SubResource("mesh_movable_rock")
+surface_material_override/0 = SubResource("mat_rock")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveRoom/MovableObjects/LooseRockC"]
+shape = SubResource("shape_movable_rock")
+
+[node name="LogA" type="RigidBody3D" parent="CaveRoom/MovableObjects"]
+mass = 3.2
+transform = Transform3D(0.9553365, 0, 0.29552022, 0, 1, 0, -0.29552022, 0, 0.9553365, 1.2, 0.38, -12.8)
+continuous_cd = true
+script = ExtResource("4_movable_object")
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveRoom/MovableObjects/LogA"]
+rotation = Vector3(0, 0, 1.5707964)
+mesh = SubResource("mesh_movable_log")
+surface_material_override/0 = SubResource("mat_log")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveRoom/MovableObjects/LogA"]
+rotation = Vector3(0, 0, 1.5707964)
+shape = SubResource("shape_movable_log")
+
+[node name="LogB" type="RigidBody3D" parent="CaveRoom/MovableObjects"]
+mass = 3.4
+transform = Transform3D(0.87758255, 0, -0.47942555, 0, 1, 0, 0.47942555, 0, 0.87758255, 6.4, 0.38, -17.6)
+continuous_cd = true
+script = ExtResource("4_movable_object")
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveRoom/MovableObjects/LogB"]
+rotation = Vector3(0, 0, 1.5707964)
+mesh = SubResource("mesh_movable_log")
+surface_material_override/0 = SubResource("mat_log")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveRoom/MovableObjects/LogB"]
+rotation = Vector3(0, 0, 1.5707964)
+shape = SubResource("shape_movable_log")
 
 [node name="SunLight" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.90044713, -0.3267811, 0.2870699, 0, 0.6599831, 0.7512804, -0.43496552, -0.6764883, 0.5942799, 0, 0, 0)

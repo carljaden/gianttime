@@ -21,8 +21,11 @@ func _ready() -> void:
 	if _player.has_signal("gold_changed"):
 		_player.gold_changed.connect(_set_gold)
 
-	_set_health(_player.get("current_health"), _player.get("maximum_health"))
-	_set_gold(_player.get("gold"))
+	var current_health: int = int(_player.get("current_health"))
+	var maximum_health: int = int(_player.get("maximum_health"))
+	var gold: int = int(_player.get("gold"))
+	_set_health(current_health, maximum_health)
+	_set_gold(gold)
 
 
 func _set_health(current_health: int, maximum_health: int) -> void:
