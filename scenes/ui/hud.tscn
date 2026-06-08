@@ -1,0 +1,216 @@
+[gd_scene load_steps=10 format=3 uid="uid://hud_player_status"]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.035, 0.032, 0.038, 0.78)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.55, 0.48, 0.36, 0.65)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 12.0
+content_margin_top = 9.0
+content_margin_right = 12.0
+content_margin_bottom = 9.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health_background"]
+bg_color = Color(0.09, 0.07, 0.075, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health_fill"]
+bg_color = Color(0.78, 0.13, 0.12, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gold_panel"]
+bg_color = Color(0.05, 0.042, 0.035, 0.82)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.95, 0.72, 0.25, 0.75)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 10.0
+content_margin_top = 8.0
+content_margin_right = 10.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_coin"]
+bg_color = Color(1, 0.76, 0.18, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 0.92, 0.5, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_crosshair_vertical"]
+bg_color = Color(0.92, 0.96, 1, 0.78)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_crosshair_horizontal"]
+bg_color = Color(0.92, 0.96, 1, 0.78)
+
+[sub_resource type="LabelSettings" id="LabelSettings_small"]
+font_size = 14
+font_color = Color(0.93, 0.9, 0.84, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_gold"]
+font_size = 18
+font_color = Color(1, 0.84, 0.32, 1)
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_hud")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="VitalsPanel" type="PanelContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 24.0
+offset_top = 22.0
+offset_right = 282.0
+offset_bottom = 82.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="VitalsMargin" type="MarginContainer" parent="Root/VitalsPanel"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="VitalsStack" type="VBoxContainer" parent="Root/VitalsPanel/VitalsMargin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 5
+
+[node name="HealthHeader" type="HBoxContainer" parent="Root/VitalsPanel/VitalsMargin/VitalsStack"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="HealthLabel" type="Label" parent="Root/VitalsPanel/VitalsMargin/VitalsStack/HealthHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+text = "HP"
+label_settings = SubResource("LabelSettings_small")
+
+[node name="HealthText" type="Label" parent="Root/VitalsPanel/VitalsMargin/VitalsStack/HealthHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = "100 / 100"
+label_settings = SubResource("LabelSettings_small")
+horizontal_alignment = 2
+
+[node name="HealthBar" type="ProgressBar" parent="Root/VitalsPanel/VitalsMargin/VitalsStack"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 16)
+layout_mode = 2
+mouse_filter = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+theme_override_styles/background = SubResource("StyleBoxFlat_health_background")
+theme_override_styles/fill = SubResource("StyleBoxFlat_health_fill")
+
+[node name="GoldPanel" type="PanelContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -152.0
+offset_top = 22.0
+offset_right = -24.0
+offset_bottom = 64.0
+grow_horizontal = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_gold_panel")
+
+[node name="GoldContents" type="HBoxContainer" parent="Root/GoldPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Coin" type="Panel" parent="Root/GoldPanel/GoldContents"]
+custom_minimum_size = Vector2(18, 18)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_coin")
+
+[node name="GoldText" type="Label" parent="Root/GoldPanel/GoldContents"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+text = "25"
+label_settings = SubResource("LabelSettings_gold")
+vertical_alignment = 1
+
+[node name="Crosshair" type="Control" parent="Root"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -8.0
+offset_top = -8.0
+offset_right = 8.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Vertical" type="Panel" parent="Root/Crosshair"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -1.0
+offset_top = -5.0
+offset_right = 1.0
+offset_bottom = 5.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_crosshair_vertical")
+
+[node name="Horizontal" type="Panel" parent="Root/Crosshair"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -5.0
+offset_top = -1.0
+offset_right = 5.0
+offset_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_crosshair_horizontal")

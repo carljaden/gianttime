@@ -1,0 +1,293 @@
+[gd_scene load_steps=36 format=3 uid="uid://tmc42etns2k4"]
+
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="2_hud"]
+
+[sub_resource type="StandardMaterial3D" id="mat_grass"]
+albedo_color = Color(0.18, 0.33, 0.2, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="mat_path"]
+albedo_color = Color(0.34, 0.27, 0.2, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="mat_rock"]
+albedo_color = Color(0.17, 0.16, 0.18, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="mat_cave_floor"]
+albedo_color = Color(0.11, 0.105, 0.115, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="mat_crystal"]
+albedo_color = Color(0.18, 0.75, 0.95, 1)
+emission_enabled = true
+emission = Color(0.18, 0.75, 0.95, 1)
+emission_energy_multiplier = 1.8
+
+[sub_resource type="StandardMaterial3D" id="mat_marker"]
+albedo_color = Color(0.65, 0.5, 0.22, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="mesh_spawn_ground"]
+size = Vector3(28, 0.25, 18)
+
+[sub_resource type="BoxShape3D" id="shape_spawn_ground"]
+size = Vector3(28, 0.25, 18)
+
+[sub_resource type="BoxMesh" id="mesh_path"]
+size = Vector3(7, 0.18, 12)
+
+[sub_resource type="BoxShape3D" id="shape_path"]
+size = Vector3(7, 0.18, 12)
+
+[sub_resource type="BoxMesh" id="mesh_cave_floor"]
+size = Vector3(16, 0.25, 15)
+
+[sub_resource type="BoxShape3D" id="shape_cave_floor"]
+size = Vector3(16, 0.25, 15)
+
+[sub_resource type="CylinderMesh" id="mesh_spawn_marker"]
+top_radius = 0.08
+bottom_radius = 0.08
+height = 2.2
+
+[sub_resource type="BoxMesh" id="mesh_flag"]
+size = Vector3(0.08, 0.7, 1.1)
+
+[sub_resource type="BoxMesh" id="mesh_left_outer_rock"]
+size = Vector3(2.2, 3.2, 2.4)
+
+[sub_resource type="BoxShape3D" id="shape_left_outer_rock"]
+size = Vector3(2.2, 3.2, 2.4)
+
+[sub_resource type="BoxMesh" id="mesh_right_outer_rock"]
+size = Vector3(2.1, 3, 2.5)
+
+[sub_resource type="BoxShape3D" id="shape_right_outer_rock"]
+size = Vector3(2.1, 3, 2.5)
+
+[sub_resource type="BoxMesh" id="mesh_overhang"]
+size = Vector3(7.2, 1.25, 2.2)
+
+[sub_resource type="BoxShape3D" id="shape_overhang"]
+size = Vector3(7.2, 1.25, 2.2)
+
+[sub_resource type="BoxMesh" id="mesh_threshold_shadow"]
+size = Vector3(4.8, 0.1, 1.8)
+
+[sub_resource type="BoxShape3D" id="shape_threshold_shadow"]
+size = Vector3(4.8, 0.1, 1.8)
+
+[sub_resource type="BoxMesh" id="mesh_back_wall"]
+size = Vector3(16, 4, 1)
+
+[sub_resource type="BoxShape3D" id="shape_back_wall"]
+size = Vector3(16, 4, 1)
+
+[sub_resource type="BoxMesh" id="mesh_side_wall"]
+size = Vector3(1, 4, 15)
+
+[sub_resource type="BoxShape3D" id="shape_side_wall"]
+size = Vector3(1, 4, 15)
+
+[sub_resource type="BoxMesh" id="mesh_ceiling"]
+size = Vector3(16, 0.9, 14)
+
+[sub_resource type="BoxShape3D" id="shape_ceiling"]
+size = Vector3(16, 0.9, 14)
+
+[sub_resource type="BoxMesh" id="mesh_center_crystal"]
+size = Vector3(0.75, 1.7, 0.75)
+
+[sub_resource type="BoxMesh" id="mesh_low_rock_left"]
+size = Vector3(2.1, 0.9, 1.4)
+
+[sub_resource type="BoxShape3D" id="shape_low_rock_left"]
+size = Vector3(2.1, 0.9, 1.4)
+
+[sub_resource type="BoxMesh" id="mesh_low_rock_right"]
+size = Vector3(2.4, 0.7, 1.2)
+
+[sub_resource type="BoxShape3D" id="shape_low_rock_right"]
+size = Vector3(2.4, 0.7, 1.2)
+
+[node name="Main" type="Node3D"]
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+position = Vector3(0, 0.15, 8.5)
+
+[node name="HUD" parent="." instance=ExtResource("2_hud")]
+
+[node name="OutdoorSpawn" type="Node3D" parent="."]
+
+[node name="SpawnGround" type="StaticBody3D" parent="OutdoorSpawn"]
+position = Vector3(0, -0.125, 8)
+
+[node name="Mesh" type="MeshInstance3D" parent="OutdoorSpawn/SpawnGround"]
+mesh = SubResource("mesh_spawn_ground")
+surface_material_override/0 = SubResource("mat_grass")
+
+[node name="Collision" type="CollisionShape3D" parent="OutdoorSpawn/SpawnGround"]
+shape = SubResource("shape_spawn_ground")
+
+[node name="DirtPath" type="StaticBody3D" parent="OutdoorSpawn"]
+position = Vector3(0, -0.08, 2)
+
+[node name="Mesh" type="MeshInstance3D" parent="OutdoorSpawn/DirtPath"]
+mesh = SubResource("mesh_path")
+surface_material_override/0 = SubResource("mat_path")
+
+[node name="Collision" type="CollisionShape3D" parent="OutdoorSpawn/DirtPath"]
+shape = SubResource("shape_path")
+
+[node name="SpawnMarker" type="Node3D" parent="OutdoorSpawn"]
+position = Vector3(-3.5, 0, 9.5)
+
+[node name="Post" type="MeshInstance3D" parent="OutdoorSpawn/SpawnMarker"]
+position = Vector3(0, 1.1, 0)
+mesh = SubResource("mesh_spawn_marker")
+surface_material_override/0 = SubResource("mat_marker")
+
+[node name="Flag" type="MeshInstance3D" parent="OutdoorSpawn/SpawnMarker"]
+position = Vector3(0.55, 1.65, 0)
+mesh = SubResource("mesh_flag")
+surface_material_override/0 = SubResource("mat_marker")
+
+[node name="CaveMouth" type="Node3D" parent="."]
+
+[node name="LeftOuterRock" type="StaticBody3D" parent="CaveMouth"]
+position = Vector3(-4.3, 1.6, -3.2)
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveMouth/LeftOuterRock"]
+mesh = SubResource("mesh_left_outer_rock")
+surface_material_override/0 = SubResource("mat_rock")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveMouth/LeftOuterRock"]
+shape = SubResource("shape_left_outer_rock")
+
+[node name="RightOuterRock" type="StaticBody3D" parent="CaveMouth"]
+position = Vector3(4.3, 1.5, -3.2)
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveMouth/RightOuterRock"]
+mesh = SubResource("mesh_right_outer_rock")
+surface_material_override/0 = SubResource("mat_rock")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveMouth/RightOuterRock"]
+shape = SubResource("shape_right_outer_rock")
+
+[node name="Overhang" type="StaticBody3D" parent="CaveMouth"]
+position = Vector3(0, 3.35, -3.4)
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveMouth/Overhang"]
+mesh = SubResource("mesh_overhang")
+surface_material_override/0 = SubResource("mat_rock")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveMouth/Overhang"]
+shape = SubResource("shape_overhang")
+
+[node name="ThresholdShadow" type="StaticBody3D" parent="CaveMouth"]
+position = Vector3(0, 0.05, -4.2)
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveMouth/ThresholdShadow"]
+mesh = SubResource("mesh_threshold_shadow")
+surface_material_override/0 = SubResource("mat_cave_floor")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveMouth/ThresholdShadow"]
+shape = SubResource("shape_threshold_shadow")
+
+[node name="CaveRoom" type="Node3D" parent="."]
+
+[node name="CaveFloor" type="StaticBody3D" parent="CaveRoom"]
+position = Vector3(0, -0.125, -12)
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveRoom/CaveFloor"]
+mesh = SubResource("mesh_cave_floor")
+surface_material_override/0 = SubResource("mat_cave_floor")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveRoom/CaveFloor"]
+shape = SubResource("shape_cave_floor")
+
+[node name="BackWall" type="StaticBody3D" parent="CaveRoom"]
+position = Vector3(0, 2, -19.6)
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveRoom/BackWall"]
+mesh = SubResource("mesh_back_wall")
+surface_material_override/0 = SubResource("mat_rock")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveRoom/BackWall"]
+shape = SubResource("shape_back_wall")
+
+[node name="LeftWall" type="StaticBody3D" parent="CaveRoom"]
+position = Vector3(-8.2, 2, -12)
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveRoom/LeftWall"]
+mesh = SubResource("mesh_side_wall")
+surface_material_override/0 = SubResource("mat_rock")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveRoom/LeftWall"]
+shape = SubResource("shape_side_wall")
+
+[node name="RightWall" type="StaticBody3D" parent="CaveRoom"]
+position = Vector3(8.2, 2, -12)
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveRoom/RightWall"]
+mesh = SubResource("mesh_side_wall")
+surface_material_override/0 = SubResource("mat_rock")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveRoom/RightWall"]
+shape = SubResource("shape_side_wall")
+
+[node name="Ceiling" type="StaticBody3D" parent="CaveRoom"]
+position = Vector3(0, 4.1, -12.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveRoom/Ceiling"]
+mesh = SubResource("mesh_ceiling")
+surface_material_override/0 = SubResource("mat_rock")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveRoom/Ceiling"]
+shape = SubResource("shape_ceiling")
+
+[node name="CenterCrystal" type="MeshInstance3D" parent="CaveRoom"]
+position = Vector3(0, 0.85, -13.5)
+rotation = Vector3(0.0, 0.7853982, 0.0)
+mesh = SubResource("mesh_center_crystal")
+surface_material_override/0 = SubResource("mat_crystal")
+
+[node name="LowRockLeft" type="StaticBody3D" parent="CaveRoom"]
+position = Vector3(-3.2, 0.45, -10.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveRoom/LowRockLeft"]
+mesh = SubResource("mesh_low_rock_left")
+surface_material_override/0 = SubResource("mat_rock")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveRoom/LowRockLeft"]
+shape = SubResource("shape_low_rock_left")
+
+[node name="LowRockRight" type="StaticBody3D" parent="CaveRoom"]
+position = Vector3(3.4, 0.35, -15.8)
+
+[node name="Mesh" type="MeshInstance3D" parent="CaveRoom/LowRockRight"]
+mesh = SubResource("mesh_low_rock_right")
+surface_material_override/0 = SubResource("mat_rock")
+
+[node name="Collision" type="CollisionShape3D" parent="CaveRoom/LowRockRight"]
+shape = SubResource("shape_low_rock_right")
+
+[node name="SunLight" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.85, 0.45, 0.0)
+light_energy = 1.8
+
+[node name="CaveMouthLight" type="OmniLight3D" parent="."]
+position = Vector3(0, 2.2, -3.8)
+light_color = Color(0.95, 0.74, 0.5, 1)
+light_energy = 2.2
+omni_range = 7.0
+
+[node name="CrystalLight" type="OmniLight3D" parent="."]
+position = Vector3(0, 1.6, -13.5)
+light_color = Color(0.2, 0.8, 1, 1)
+light_energy = 1.7
+omni_range = 8.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
