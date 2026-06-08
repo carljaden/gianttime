@@ -1,0 +1,134 @@
+[gd_scene load_steps=7 format=3 uid="uid://game_menu_overlay"]
+
+[ext_resource type="Script" path="res://scripts/ui/game_menu.gd" id="1_menu"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dim"]
+bg_color = Color(0.02, 0.018, 0.022, 0.72)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.05, 0.045, 0.055, 0.94)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.7, 0.58, 0.36, 0.7)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 18.0
+content_margin_top = 16.0
+content_margin_right = 18.0
+content_margin_bottom = 16.0
+
+[sub_resource type="LabelSettings" id="LabelSettings_title"]
+font_size = 28
+font_color = Color(0.94, 0.9, 0.82, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_header"]
+font_size = 18
+font_color = Color(0.94, 0.9, 0.82, 1)
+
+[sub_resource type="Theme" id="Theme_menu"]
+
+[node name="GameMenu" type="CanvasLayer"]
+process_mode = 3
+script = ExtResource("1_menu")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Dim" type="Panel" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_dim")
+
+[node name="MenuPanel" type="PanelContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -170.0
+offset_top = -160.0
+offset_right = 170.0
+offset_bottom = 160.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="MenuMargin" type="MarginContainer" parent="Root/MenuPanel"]
+layout_mode = 2
+
+[node name="MenuStack" type="VBoxContainer" parent="Root/MenuPanel/MenuMargin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Root/MenuPanel/MenuMargin/MenuStack"]
+layout_mode = 2
+text = "Paused"
+label_settings = SubResource("LabelSettings_title")
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="Root/MenuPanel/MenuMargin/MenuStack"]
+custom_minimum_size = Vector2(240, 42)
+layout_mode = 2
+text = "Resume"
+
+[node name="ResetButton" type="Button" parent="Root/MenuPanel/MenuMargin/MenuStack"]
+custom_minimum_size = Vector2(240, 42)
+layout_mode = 2
+text = "Reset"
+
+[node name="SettingsButton" type="Button" parent="Root/MenuPanel/MenuMargin/MenuStack"]
+custom_minimum_size = Vector2(240, 42)
+layout_mode = 2
+text = "Settings"
+
+[node name="SettingsPanel" type="PanelContainer" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 205.0
+offset_top = -260.0
+offset_right = 735.0
+offset_bottom = 260.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="SettingsMargin" type="MarginContainer" parent="Root/SettingsPanel"]
+layout_mode = 2
+
+[node name="SettingsStack" type="VBoxContainer" parent="Root/SettingsPanel/SettingsMargin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SettingsTitle" type="Label" parent="Root/SettingsPanel/SettingsMargin/SettingsStack"]
+layout_mode = 2
+text = "Settings"
+label_settings = SubResource("LabelSettings_header")
+
+[node name="SettingsList" type="VBoxContainer" parent="Root/SettingsPanel/SettingsMargin/SettingsStack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[connection signal="pressed" from="Root/MenuPanel/MenuMargin/MenuStack/ResumeButton" to="." method="_on_resume_pressed"]
+[connection signal="pressed" from="Root/MenuPanel/MenuMargin/MenuStack/ResetButton" to="." method="_on_reset_pressed"]
+[connection signal="pressed" from="Root/MenuPanel/MenuMargin/MenuStack/SettingsButton" to="." method="_on_settings_pressed"]

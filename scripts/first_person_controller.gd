@@ -91,20 +91,26 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		if _is_tactical_planning:
 			_set_tactical_planning(false)
-		elif Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		elif _toggle_game_menu():
+			pass
 		else:
-			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			else:
+				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
 func _process(_delta: float) -> void:
+	if _is_game_menu_open():
+		return
+
 	if _is_tactical_planning:
 		_update_hovered_nodes()
 		_update_selected_impulse_from_keys()
 
 
 func _physics_process(delta: float) -> void:
-	if _is_tactical_planning:
+	if _is_tactical_planning or _is_game_menu_open():
 		return
 
 	if not is_on_floor():
@@ -392,3 +398,20 @@ func _apply_punch_hit() -> void:
 
 	if collider is RigidBody3D:
 		(collider as RigidBody3D).apply_central_impulse(direction * punch_impulse)
+
+
+func _toggle_game_menu() -> bool:
+	var menu := get_tree().get_first_node_in_group("game_menu")
+	if menu == null or not menu.has_method("toggle_menu"):
+		return false
+
+	menu.call("toggle_menu")
+	return true
+
+
+func _is_game_menu_open() -> bool:
+	var menu := get_tree().get_first_node_in_group("game_menu")
+	if menu == null or not menu.has_method("is_open"):
+		return false
+
+	return bool(menu.call("is_open"))

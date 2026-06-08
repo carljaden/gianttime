@@ -1,9 +1,10 @@
-[gd_scene load_steps=63 format=3 uid="uid://tmc42etns2k4"]
+[gd_scene load_steps=64 format=3 uid="uid://tmc42etns2k4"]
 
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="2_hud"]
 [ext_resource type="Script" uid="uid://cdcqsyw4jmb7f" path="res://scripts/combat/target_dummy.gd" id="3_target_dummy"]
 [ext_resource type="Script" uid="uid://j104wtgewdoq" path="res://scripts/combat/movable_object.gd" id="4_movable_object"]
+[ext_resource type="PackedScene" path="res://scenes/ui/game_menu.tscn" id="5_game_menu"]
 
 [sub_resource type="BoxMesh" id="mesh_spawn_ground"]
 size = Vector3(28, 0.25, 18)
@@ -209,6 +210,8 @@ sky = SubResource("Sky_jyhfs")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 8.5)
 
 [node name="HUD" parent="." instance=ExtResource("2_hud")]
+
+[node name="GameMenu" parent="." instance=ExtResource("5_game_menu")]
 
 [node name="OutdoorSpawn" type="Node3D" parent="."]
 
