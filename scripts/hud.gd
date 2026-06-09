@@ -2,6 +2,8 @@ extends CanvasLayer
 
 @onready var health_bar: ProgressBar = %HealthBar
 @onready var health_text: Label = %HealthText
+@onready var sprint_bar: ProgressBar = %SprintBar
+@onready var sprint_text: Label = %SprintText
 @onready var fatigue_bar: ProgressBar = %FatigueBar
 @onready var fatigue_text: Label = %FatigueText
 @onready var time_stop_bar: ProgressBar = %TimeStopBar
@@ -18,6 +20,7 @@ func _ready() -> void:
 
 	if _player == null:
 		_set_health(0, 100)
+		_set_sprint_stamina(0.0, 100.0)
 		_set_mental_fatigue(0.0, 100.0)
 		_set_time_stop(0.0, 1.0, "ready")
 		_set_gold(0)
@@ -27,6 +30,8 @@ func _ready() -> void:
 		_player.health_changed.connect(_set_health)
 	if _player.has_signal("gold_changed"):
 		_player.gold_changed.connect(_set_gold)
+	if _player.has_signal("sprint_stamina_changed"):
+		_player.sprint_stamina_changed.connect(_set_sprint_stamina)
 	if _player.has_signal("mental_fatigue_changed"):
 		_player.mental_fatigue_changed.connect(_set_mental_fatigue)
 	if _player.has_signal("time_stop_changed"):
@@ -35,10 +40,17 @@ func _ready() -> void:
 	var current_health: int = int(_player.get("current_health"))
 	var maximum_health: int = int(_player.get("maximum_health"))
 	var gold: int = int(_player.get("gold"))
+	var sprint: float = float(_player.get("_sprint_stamina"))
+	var stats := {}
+	var sprint_capacity := 100.0
+	if _player.has_method("get_stats_snapshot"):
+		stats = _player.call("get_stats_snapshot")
+		sprint_capacity = float(stats["sprint_capacity"])
 	var current_fatigue: float = float(_player.get("_mental_fatigue"))
-	var maximum_fatigue: float = float(_player.get("maximum_mental_fatigue"))
+	var maximum_fatigue: float = float(stats.get("focus_capacity", _player.get("maximum_mental_fatigue")))
 	var time_stop_duration: float = float(_player.get("time_stop_duration"))
 	_set_health(current_health, maximum_health)
+	_set_sprint_stamina(sprint, sprint_capacity)
 	_set_mental_fatigue(current_fatigue, maximum_fatigue)
 	_set_time_stop(0.0, time_stop_duration, "ready")
 	_set_gold(gold)
@@ -48,6 +60,12 @@ func _set_health(current_health: int, maximum_health: int) -> void:
 	health_bar.max_value = maximum_health
 	health_bar.value = current_health
 	health_text.text = "%s / %s" % [current_health, maximum_health]
+
+
+func _set_sprint_stamina(current_stamina: float, maximum_stamina: float) -> void:
+	sprint_bar.max_value = maximum_stamina
+	sprint_bar.value = current_stamina
+	sprint_text.text = "%s / %s" % [roundi(current_stamina), roundi(maximum_stamina)]
 
 
 func _set_mental_fatigue(current_fatigue: float, maximum_fatigue: float) -> void:

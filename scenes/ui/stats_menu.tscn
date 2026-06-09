@@ -1,0 +1,89 @@
+[gd_scene load_steps=5 format=3 uid="uid://stats_menu_overlay"]
+
+[ext_resource type="Script" path="res://scripts/ui/stats_menu.gd" id="1_stats"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dim"]
+bg_color = Color(0.02, 0.018, 0.022, 0.62)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.045, 0.045, 0.052, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.42, 0.72, 0.95, 0.72)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 18.0
+content_margin_top = 16.0
+content_margin_right = 18.0
+content_margin_bottom = 16.0
+
+[sub_resource type="LabelSettings" id="LabelSettings_title"]
+font_size = 26
+font_color = Color(0.92, 0.96, 1, 1)
+
+[node name="StatsMenu" type="CanvasLayer"]
+process_mode = 3
+script = ExtResource("1_stats")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Dim" type="Panel" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_dim")
+
+[node name="StatsPanel" type="PanelContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -255.0
+offset_right = 250.0
+offset_bottom = 255.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="StatsMargin" type="MarginContainer" parent="Root/StatsPanel"]
+layout_mode = 2
+
+[node name="StatsStack" type="VBoxContainer" parent="Root/StatsPanel/StatsMargin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Root/StatsPanel/StatsMargin/StatsStack"]
+layout_mode = 2
+text = "Character Stats"
+label_settings = SubResource("LabelSettings_title")
+horizontal_alignment = 1
+
+[node name="StatsList" type="VBoxContainer" parent="Root/StatsPanel/StatsMargin/StatsStack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="CloseButton" type="Button" parent="Root/StatsPanel/StatsMargin/StatsStack"]
+custom_minimum_size = Vector2(220, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Close"
+
+[connection signal="pressed" from="Root/StatsPanel/StatsMargin/StatsStack/CloseButton" to="." method="_on_close_pressed"]

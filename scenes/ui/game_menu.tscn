@@ -61,9 +61,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -170.0
-offset_top = -160.0
+offset_top = -185.0
 offset_right = 170.0
-offset_bottom = 160.0
+offset_bottom = 185.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
@@ -95,6 +95,11 @@ text = "Reset"
 custom_minimum_size = Vector2(240, 42)
 layout_mode = 2
 text = "Settings"
+
+[node name="ExitButton" type="Button" parent="Root/MenuPanel/MenuMargin/MenuStack"]
+custom_minimum_size = Vector2(240, 42)
+layout_mode = 2
+text = "Exit"
 
 [node name="SettingsPanel" type="PanelContainer" parent="Root"]
 unique_name_in_owner = true
@@ -138,3 +143,4 @@ theme_override_constants/separation = 6
 [connection signal="pressed" from="Root/MenuPanel/MenuMargin/MenuStack/ResumeButton" to="." method="_on_resume_pressed"]
 [connection signal="pressed" from="Root/MenuPanel/MenuMargin/MenuStack/ResetButton" to="." method="_on_reset_pressed"]
 [connection signal="pressed" from="Root/MenuPanel/MenuMargin/MenuStack/SettingsButton" to="." method="_on_settings_pressed"]
+[connection signal="pressed" from="Root/MenuPanel/MenuMargin/MenuStack/ExitButton" to="." method="_on_exit_pressed"]

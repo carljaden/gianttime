@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://hud_player_status"]
+[gd_scene load_steps=16 format=3 uid="uid://hud_player_status"]
 
 [ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
 
@@ -27,6 +27,20 @@ corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health_fill"]
 bg_color = Color(0.78, 0.13, 0.12, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sprint_background"]
+bg_color = Color(0.065, 0.075, 0.055, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sprint_fill"]
+bg_color = Color(0.76, 0.86, 0.26, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -120,7 +134,7 @@ anchors_preset = 0
 offset_left = 24.0
 offset_top = 22.0
 offset_right = 282.0
-offset_bottom = 158.0
+offset_bottom = 196.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
@@ -162,6 +176,36 @@ value = 100.0
 show_percentage = false
 theme_override_styles/background = SubResource("StyleBoxFlat_health_background")
 theme_override_styles/fill = SubResource("StyleBoxFlat_health_fill")
+
+[node name="SprintHeader" type="HBoxContainer" parent="Root/VitalsPanel/VitalsMargin/VitalsStack"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="SprintLabel" type="Label" parent="Root/VitalsPanel/VitalsMargin/VitalsStack/SprintHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+text = "Sprint"
+label_settings = SubResource("LabelSettings_small")
+
+[node name="SprintText" type="Label" parent="Root/VitalsPanel/VitalsMargin/VitalsStack/SprintHeader"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+text = "100 / 100"
+label_settings = SubResource("LabelSettings_small")
+horizontal_alignment = 2
+
+[node name="SprintBar" type="ProgressBar" parent="Root/VitalsPanel/VitalsMargin/VitalsStack"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(230, 14)
+layout_mode = 2
+mouse_filter = 2
+max_value = 100.0
+value = 100.0
+show_percentage = false
+theme_override_styles/background = SubResource("StyleBoxFlat_sprint_background")
+theme_override_styles/fill = SubResource("StyleBoxFlat_sprint_fill")
 
 [node name="FatigueHeader" type="HBoxContainer" parent="Root/VitalsPanel/VitalsMargin/VitalsStack"]
 layout_mode = 2

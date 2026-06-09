@@ -16,6 +16,7 @@ const DEFAULT_ACTION_EVENTS := {
 	"move_right": [KEY_D],
 	"jump": [KEY_SPACE],
 	"sprint": [KEY_SHIFT],
+	"stats_menu": [KEY_TAB],
 	"gravity_plan": [MOUSE_BUTTON_RIGHT],
 	"gravity_select": [MOUSE_BUTTON_LEFT],
 	"gravity_pull_to_head": [MOUSE_BUTTON_MIDDLE],
@@ -28,7 +29,16 @@ const DEFAULT_ACTION_EVENTS := {
 }
 
 var _settings := [
+	{"label": "Strength", "property": "strength", "min": 1.0, "max": 20.0, "step": 0.1},
+	{"label": "Stamina", "property": "stamina", "min": 1.0, "max": 20.0, "step": 0.1},
+	{"label": "Strength Physical Scaling", "property": "strength_physical_bonus_per_point", "min": 0.0, "max": 0.5, "step": 0.01},
+	{"label": "Strength Mental Scaling", "property": "strength_mental_bonus_per_point", "min": 0.0, "max": 0.5, "step": 0.01},
+	{"label": "Stamina Physical Scaling", "property": "stamina_physical_bonus_per_point", "min": 0.0, "max": 0.5, "step": 0.01},
+	{"label": "Stamina Mental Scaling", "property": "stamina_mental_bonus_per_point", "min": 0.0, "max": 0.5, "step": 0.01},
 	{"label": "Mouse Look", "property": "mouse_sensitivity", "min": 0.0005, "max": 0.01, "step": 0.0005},
+	{"label": "Sprint Capacity", "property": "sprint_stamina_capacity", "min": 10.0, "max": 300.0, "step": 5.0},
+	{"label": "Sprint Drain", "property": "sprint_stamina_drain_rate", "min": 1.0, "max": 100.0, "step": 1.0},
+	{"label": "Sprint Recovery", "property": "sprint_stamina_recovery_rate", "min": 1.0, "max": 100.0, "step": 1.0},
 	{"label": "Default Force", "property": "planning_default_magnitude", "min": 1.0, "max": 60.0, "step": 1.0},
 	{"label": "Direction Sensitivity", "property": "planning_direction_turn_rate", "min": 0.25, "max": 12.0, "step": 0.25},
 	{"label": "Scroll Force Step", "property": "planning_scroll_magnitude_step", "min": 0.5, "max": 12.0, "step": 0.5},
@@ -57,6 +67,7 @@ var _keybinds := [
 	{"label": "Move Right", "action": "move_right"},
 	{"label": "Jump", "action": "jump"},
 	{"label": "Sprint", "action": "sprint"},
+	{"label": "Stats Menu", "action": "stats_menu"},
 	{"label": "Stop Time", "action": "gravity_plan"},
 	{"label": "Select/Throw", "action": "gravity_select"},
 	{"label": "Pull To Head", "action": "gravity_pull_to_head"},
@@ -140,8 +151,35 @@ func _on_settings_pressed() -> void:
 	settings_panel.visible = not settings_panel.visible
 
 
+func _on_exit_pressed() -> void:
+	get_tree().quit()
+
+
 func _build_settings() -> void:
-	_add_settings_header("Tuning")
+	_add_settings_header("Keybinds")
+	for keybind in _keybinds:
+		var row := HBoxContainer.new()
+		row.custom_minimum_size = Vector2(460, 34)
+		settings_list.add_child(row)
+
+		var label := Label.new()
+		label.text = keybind["label"]
+		label.custom_minimum_size = Vector2(210, 0)
+		row.add_child(label)
+
+		var button := Button.new()
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(button)
+
+		var action_name: String = keybind["action"]
+		_keybind_buttons[action_name] = button
+		button.pressed.connect(
+			func() -> void:
+				_begin_rebind(action_name)
+		)
+		_refresh_keybind_button(action_name)
+
+	_add_settings_header("Developer Tuning")
 	for setting in _settings:
 		var row := HBoxContainer.new()
 		row.custom_minimum_size = Vector2(460, 34)
@@ -174,29 +212,6 @@ func _build_settings() -> void:
 			func(value: float) -> void:
 				_apply_setting(property_name, value)
 		)
-
-	_add_settings_header("Keybinds")
-	for keybind in _keybinds:
-		var row := HBoxContainer.new()
-		row.custom_minimum_size = Vector2(460, 34)
-		settings_list.add_child(row)
-
-		var label := Label.new()
-		label.text = keybind["label"]
-		label.custom_minimum_size = Vector2(210, 0)
-		row.add_child(label)
-
-		var button := Button.new()
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(button)
-
-		var action_name: String = keybind["action"]
-		_keybind_buttons[action_name] = button
-		button.pressed.connect(
-			func() -> void:
-				_begin_rebind(action_name)
-		)
-		_refresh_keybind_button(action_name)
 
 
 func _sync_settings_from_player() -> void:

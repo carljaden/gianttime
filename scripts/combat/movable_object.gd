@@ -6,9 +6,9 @@ extends RigidBody3D
 @export var vector_visual_scale := 0.08
 @export var vector_visual_height := 0.0
 @export var vector_shaft_radius := 0.045
-@export var trajectory_marker_count := 16
-@export var trajectory_step_time := 0.12
-@export var trajectory_marker_radius := 0.055
+@export var trajectory_marker_count := 36
+@export var trajectory_step_time := 0.1
+@export var trajectory_marker_radius := 0.085
 
 var _pending_impulse := Vector3.ZERO
 var _can_damage := true
@@ -83,10 +83,10 @@ func _ready() -> void:
 	_vector_tip.material_override = _vector_material
 	_vector_root.add_child(_vector_tip)
 
-	_trajectory_material.albedo_color = Color(0.35, 0.95, 1.0, 0.86)
+	_trajectory_material.albedo_color = Color(0.28, 0.72, 1.0, 0.68)
 	_trajectory_material.emission_enabled = true
-	_trajectory_material.emission = Color(0.35, 0.95, 1.0, 1.0)
-	_trajectory_material.emission_energy_multiplier = 1.4
+	_trajectory_material.emission = Color(0.24, 0.64, 1.0, 1.0)
+	_trajectory_material.emission_energy_multiplier = 1.7
 	_trajectory_material.no_depth_test = true
 	_trajectory_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_trajectory_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -180,16 +180,18 @@ func get_mental_fatigue_cost(item_cost: float, impulse_cost: float) -> float:
 	return item_cost + _pending_impulse.length() * impulse_cost
 
 
-func apply_planned_impulse() -> void:
+func apply_planned_impulse() -> Vector3:
 	if _pending_impulse == Vector3.ZERO:
-		return
+		return Vector3.ZERO
 
+	var applied_impulse := _pending_impulse
 	sleeping = false
-	apply_central_impulse(_pending_impulse)
+	apply_central_impulse(applied_impulse)
 	_pending_impulse = Vector3.ZERO
 	_set_overlay(null)
 	_hide_vector_visual()
 	_hide_trajectory_visual()
+	return applied_impulse
 
 
 func reduce_linear_momentum(amount: float) -> void:
@@ -269,15 +271,17 @@ func _update_trajectory_visual(impulse: Vector3) -> void:
 		_hide_trajectory_visual()
 		return
 
-	var launch_velocity: Vector3 = impulse / mass
+	var launch_velocity: Vector3 = linear_velocity + impulse / mass
 	var gravity_vector: Vector3 = Vector3.DOWN * _gravity
 	var origin_global: Vector3 = global_position
 	var previous_global: Vector3 = origin_global
 	var inverse_basis: Basis = global_transform.basis.inverse()
 	var visible_count: int = 0
+	var speed_factor := clampf(launch_velocity.length() / 14.0, 0.35, 1.15)
+	var marker_step_time := trajectory_step_time * speed_factor
 
 	for marker_index in trajectory_marker_count:
-		var time: float = float(marker_index + 1) * trajectory_step_time
+		var time: float = float(marker_index + 1) * marker_step_time
 		var offset: Vector3 = launch_velocity * time + 0.5 * gravity_vector * time * time
 		var predicted_global: Vector3 = origin_global + offset
 		var collision_global: Vector3 = _get_trajectory_collision_point(previous_global, predicted_global)
@@ -311,7 +315,7 @@ func _get_trajectory_collision_point(from_global: Vector3, to_global: Vector3) -
 
 func _set_trajectory_marker(marker_index: int, local_position: Vector3) -> void:
 	var marker: MeshInstance3D = _trajectory_markers[marker_index]
-	var size_multiplier: float = 1.0 - float(marker_index) / float(trajectory_marker_count) * 0.55
+	var size_multiplier: float = 1.0 - float(marker_index) / float(trajectory_marker_count) * 0.35
 	marker.position = local_position
 	marker.scale = Vector3.ONE * size_multiplier
 	marker.visible = true
