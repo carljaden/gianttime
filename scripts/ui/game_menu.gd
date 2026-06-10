@@ -3,11 +3,14 @@ extends CanvasLayer
 @onready var root: Control = $Root
 @onready var settings_list: VBoxContainer = %SettingsList
 @onready var settings_panel: PanelContainer = %SettingsPanel
+@onready var title_label: Label = $Root/MenuPanel/MenuMargin/MenuStack/Title
+@onready var resume_button: Button = $Root/MenuPanel/MenuMargin/MenuStack/ResumeButton
 
 var _player: Node
 var _settings_controls: Dictionary = {}
 var _keybind_buttons: Dictionary = {}
 var _rebinding_action := ""
+var _death_mode := false
 
 const DEFAULT_ACTION_EVENTS := {
 	"move_forward": [KEY_W],
@@ -25,16 +28,21 @@ const DEFAULT_ACTION_EVENTS := {
 	"gravity_area_push": [KEY_SHIFT],
 	"gravity_area_pull": [KEY_CTRL],
 	"gravity_reduce_momentum": [KEY_F],
+	"gravity_undo_plan": [KEY_BACKSPACE],
 	"punch": [MOUSE_BUTTON_LEFT],
 }
 
 var _settings := [
 	{"label": "Strength", "property": "strength", "min": 1.0, "max": 20.0, "step": 0.1},
 	{"label": "Stamina", "property": "stamina", "min": 1.0, "max": 20.0, "step": 0.1},
+	{"label": "Physical Speed", "property": "physical_speed", "min": 1.0, "max": 20.0, "step": 0.1},
+	{"label": "Mental Speed", "property": "mental_speed", "min": 1.0, "max": 20.0, "step": 0.1},
 	{"label": "Strength Physical Scaling", "property": "strength_physical_bonus_per_point", "min": 0.0, "max": 0.5, "step": 0.01},
 	{"label": "Strength Mental Scaling", "property": "strength_mental_bonus_per_point", "min": 0.0, "max": 0.5, "step": 0.01},
 	{"label": "Stamina Physical Scaling", "property": "stamina_physical_bonus_per_point", "min": 0.0, "max": 0.5, "step": 0.01},
 	{"label": "Stamina Mental Scaling", "property": "stamina_mental_bonus_per_point", "min": 0.0, "max": 0.5, "step": 0.01},
+	{"label": "Physical Speed Scaling", "property": "physical_speed_bonus_per_point", "min": 0.0, "max": 0.5, "step": 0.01},
+	{"label": "Mental Speed Scaling", "property": "mental_speed_bonus_per_point", "min": 0.0, "max": 0.5, "step": 0.01},
 	{"label": "Mouse Look", "property": "mouse_sensitivity", "min": 0.0005, "max": 0.01, "step": 0.0005},
 	{"label": "Sprint Capacity", "property": "sprint_stamina_capacity", "min": 10.0, "max": 300.0, "step": 5.0},
 	{"label": "Sprint Drain", "property": "sprint_stamina_drain_rate", "min": 1.0, "max": 100.0, "step": 1.0},
@@ -47,7 +55,10 @@ var _settings := [
 	{"label": "Pull To Head Force", "property": "pull_to_head_impulse", "min": 5.0, "max": 100.0, "step": 1.0},
 	{"label": "Area Radius", "property": "area_gravity_radius", "min": 1.0, "max": 18.0, "step": 0.5},
 	{"label": "Area Push/Pull", "property": "area_gravity_impulse", "min": 1.0, "max": 80.0, "step": 1.0},
-	{"label": "Momentum Slow", "property": "momentum_reduction_step", "min": 0.0, "max": 80.0, "step": 1.0},
+	{"label": "Stabilize Momentum", "property": "momentum_reduction_step", "min": 0.0, "max": 80.0, "step": 1.0},
+	{"label": "Hover Range", "property": "hover_range", "min": 1.0, "max": 24.0, "step": 0.5},
+	{"label": "Hover Strain At Reference", "property": "hover_focus_drain_per_second", "min": 0.0, "max": 40.0, "step": 0.5},
+	{"label": "Hover Reference Force", "property": "hover_reference_counter_gravity_force", "min": 1.0, "max": 200.0, "step": 1.0},
 	{"label": "Time Stop Duration", "property": "time_stop_duration", "min": 0.5, "max": 20.0, "step": 0.5},
 	{"label": "Time Stop Cooldown", "property": "time_stop_cooldown", "min": 0.0, "max": 20.0, "step": 0.5},
 	{"label": "Focus Capacity", "property": "maximum_mental_fatigue", "min": 10.0, "max": 300.0, "step": 5.0},
@@ -75,7 +86,8 @@ var _keybinds := [
 	{"label": "Plan Down", "action": "gravity_plan_down"},
 	{"label": "Sphere Push", "action": "gravity_area_push"},
 	{"label": "Sphere Pull", "action": "gravity_area_pull"},
-	{"label": "Slow Momentum", "action": "gravity_reduce_momentum"},
+	{"label": "Stabilize Hover", "action": "gravity_reduce_momentum"},
+	{"label": "Undo Plan", "action": "gravity_undo_plan"},
 	{"label": "Punch", "action": "punch"},
 ]
 
@@ -93,14 +105,31 @@ func _ready() -> void:
 
 
 func open_menu() -> void:
+	_death_mode = false
 	_player = get_tree().get_first_node_in_group("player")
 	_sync_settings_from_player()
+	title_label.text = "Paused"
+	resume_button.disabled = false
 	root.visible = true
 	get_tree().paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
+func open_death_menu() -> void:
+	_death_mode = true
+	_player = get_tree().get_first_node_in_group("player")
+	title_label.text = "Defeated"
+	resume_button.disabled = true
+	root.visible = true
+	settings_panel.visible = false
+	get_tree().paused = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
 func close_menu() -> void:
+	if _death_mode:
+		return
+
 	root.visible = false
 	settings_panel.visible = false
 	_rebinding_action = ""
@@ -326,9 +355,9 @@ func _ensure_default_input_actions() -> void:
 func _create_input_event(event_code: int) -> InputEvent:
 	if event_code >= MOUSE_BUTTON_LEFT and event_code <= MOUSE_BUTTON_XBUTTON2:
 		var mouse_event := InputEventMouseButton.new()
-		mouse_event.button_index = event_code
+		mouse_event.button_index = event_code as MouseButton
 		return mouse_event
 
 	var key_event := InputEventKey.new()
-	key_event.keycode = event_code
+	key_event.keycode = event_code as Key
 	return key_event

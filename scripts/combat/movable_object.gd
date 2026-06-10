@@ -15,6 +15,7 @@ var _can_damage := true
 var _highlight_material: StandardMaterial3D = StandardMaterial3D.new()
 var _selected_material: StandardMaterial3D = StandardMaterial3D.new()
 var _planned_material: StandardMaterial3D = StandardMaterial3D.new()
+var _hover_material: StandardMaterial3D = StandardMaterial3D.new()
 var _vector_material: StandardMaterial3D = StandardMaterial3D.new()
 var _vector_root: Node3D
 var _vector_shaft_mesh: CylinderMesh = CylinderMesh.new()
@@ -30,11 +31,14 @@ var _slow_feedback_mesh: SphereMesh = SphereMesh.new()
 var _slow_feedback: MeshInstance3D
 var _slow_feedback_time := 0.0
 var _slow_feedback_duration := 0.32
+var _base_gravity_scale := 1.0
+var _is_gravity_suspended := false
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group("gravity_movable")
+	_base_gravity_scale = gravity_scale
 	contact_monitor = true
 	max_contacts_reported = 4
 	body_entered.connect(_on_body_entered)
@@ -50,6 +54,10 @@ func _ready() -> void:
 	_planned_material.albedo_color = Color(0.45, 1.0, 0.38, 0.5)
 	_planned_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_planned_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+
+	_hover_material.albedo_color = Color(0.22, 0.82, 1.0, 0.5)
+	_hover_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_hover_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 
 	_vector_material.albedo_color = Color(0.5, 1.0, 0.3, 1.0)
 	_vector_material.emission_enabled = true
@@ -146,6 +154,8 @@ func set_tactical_highlight(enabled: bool, selected: bool = false) -> void:
 		_set_overlay(_selected_material)
 	elif _pending_impulse != Vector3.ZERO:
 		_set_overlay(_planned_material)
+	elif _is_gravity_suspended:
+		_set_overlay(_hover_material)
 	elif enabled:
 		_set_overlay(_highlight_material)
 	else:
@@ -157,10 +167,7 @@ func queue_gravity_impulse(impulse: Vector3) -> void:
 		clear_plan()
 		return
 
-	_pending_impulse = impulse * impulse_multiplier
-	_set_overlay(_planned_material)
-	_update_vector_visual(_pending_impulse)
-	_update_trajectory_visual(_pending_impulse)
+	set_pending_impulse(impulse * impulse_multiplier)
 
 
 func preview_gravity_impulse(impulse: Vector3) -> void:
@@ -171,6 +178,21 @@ func preview_gravity_impulse(impulse: Vector3) -> void:
 
 func has_planned_impulse() -> bool:
 	return _pending_impulse != Vector3.ZERO
+
+
+func get_pending_impulse() -> Vector3:
+	return _pending_impulse
+
+
+func set_pending_impulse(impulse: Vector3) -> void:
+	if impulse.length() < 0.05:
+		clear_plan()
+		return
+
+	_pending_impulse = impulse
+	_set_overlay(_planned_material)
+	_update_vector_visual(_pending_impulse)
+	_update_trajectory_visual(_pending_impulse)
 
 
 func get_mental_fatigue_cost(item_cost: float, impulse_cost: float) -> float:
@@ -188,7 +210,7 @@ func apply_planned_impulse() -> Vector3:
 	sleeping = false
 	apply_central_impulse(applied_impulse)
 	_pending_impulse = Vector3.ZERO
-	_set_overlay(null)
+	_set_overlay(_hover_material if _is_gravity_suspended else null)
 	_hide_vector_visual()
 	_hide_trajectory_visual()
 	return applied_impulse
@@ -213,9 +235,28 @@ func reduce_linear_momentum(amount: float) -> void:
 	_show_slow_feedback()
 
 
+func set_gravity_suspended(enabled: bool) -> void:
+	_is_gravity_suspended = enabled
+	gravity_scale = 0.0 if enabled else _base_gravity_scale
+	sleeping = false
+	if enabled:
+		_show_slow_feedback()
+		_set_overlay(_hover_material)
+	else:
+		_set_overlay(_planned_material if _pending_impulse != Vector3.ZERO else null)
+
+
+func is_gravity_suspended() -> bool:
+	return _is_gravity_suspended
+
+
+func get_counter_gravity_force(gravity_magnitude: float) -> float:
+	return mass * gravity_magnitude * maxf(_base_gravity_scale, 0.0)
+
+
 func clear_plan() -> void:
 	_pending_impulse = Vector3.ZERO
-	_set_overlay(null)
+	_set_overlay(_hover_material if _is_gravity_suspended else null)
 	_hide_vector_visual()
 	_hide_trajectory_visual()
 
@@ -272,7 +313,7 @@ func _update_trajectory_visual(impulse: Vector3) -> void:
 		return
 
 	var launch_velocity: Vector3 = linear_velocity + impulse / mass
-	var gravity_vector: Vector3 = Vector3.DOWN * _gravity
+	var gravity_vector: Vector3 = Vector3.DOWN * _gravity * maxf(gravity_scale, 0.0)
 	var origin_global: Vector3 = global_position
 	var previous_global: Vector3 = origin_global
 	var inverse_basis: Basis = global_transform.basis.inverse()
@@ -301,9 +342,9 @@ func _update_trajectory_visual(impulse: Vector3) -> void:
 		_trajectory_markers[marker_index].visible = false
 
 
-func _get_trajectory_collision_point(from_global: Vector3, to_global: Vector3) -> Vector3:
+func _get_trajectory_collision_point(from_global: Vector3, target_global: Vector3) -> Vector3:
 	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
-	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(from_global, to_global)
+	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(from_global, target_global)
 	query.exclude = [self]
 
 	var result: Dictionary = space_state.intersect_ray(query)

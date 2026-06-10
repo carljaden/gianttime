@@ -19,6 +19,12 @@ var _rows := [
 	{"key": "sprint", "label": "Sprint"},
 	{"key": "stamina_mental", "label": "Mental Stamina"},
 	{"key": "focus_capacity", "label": "Focus Capacity"},
+	{"key": "physical_speed", "label": "Physical Speed"},
+	{"key": "run_speed", "label": "Run Speed"},
+	{"key": "mental_speed", "label": "Mental Speed"},
+	{"key": "focus_recovery", "label": "Focus Recovery"},
+	{"key": "time_stop_cooldown", "label": "Time Reset"},
+	{"key": "hover_range", "label": "Hover Range"},
 ]
 
 
@@ -101,6 +107,20 @@ func _sync_stats() -> void:
 	_set_value("sprint", "%s / %s" % [roundi(stats["sprint"]), roundi(stats["sprint_capacity"])])
 	_set_value("stamina_mental", "+%s%%" % roundi((float(stats["stamina_mental_scale"]) - 1.0) * 100.0))
 	_set_value("focus_capacity", "%s" % roundi(stats["focus_capacity"]))
+	_set_value("physical_speed", "%.2f / %.0f (+%s%%)" % [
+		stats["physical_speed"],
+		stats["max_stat"],
+		roundi((float(stats["physical_speed_scale"]) - 1.0) * 100.0)
+	])
+	_set_value("run_speed", "%.1f" % stats["run_speed"])
+	_set_value("mental_speed", "%.2f / %.0f (+%s%%)" % [
+		stats["mental_speed"],
+		stats["max_stat"],
+		roundi((float(stats["mental_speed_scale"]) - 1.0) * 100.0)
+	])
+	_set_value("focus_recovery", "%.1f/s" % stats["focus_recovery"])
+	_set_value("time_stop_cooldown", "%.1fs" % stats["time_stop_cooldown"])
+	_set_value("hover_range", "%.1f" % stats["hover_range"])
 
 
 func _set_value(key: String, text: String) -> void:
